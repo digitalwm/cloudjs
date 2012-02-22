@@ -1,9 +1,7 @@
 /**
- * Created by JetBrains WebStorm.
- * User: dan
+ * Created by Dan Harabagiu
  * Date: 2/17/12
  * Time: 3:09 PM
- * To change this template use File | Settings | File Templates.
  */
 
 var cloud,
@@ -34,11 +32,11 @@ function Ob1(id) {
 
 var now = new Date().getTime();
 
-function addShit() {
+function addObjects() {
     var localNow = new Date().getTime();
     if(localNow - now < numberOfObjects * 1000) {
         myObject.addElementToPool(new Ob1(guidGenerator()), 5000);
     }
 }
 
-setInterval(addShit, addEveryXSeconds * 1000);
+setInterval(addObjects, addEveryXSeconds * 1000);
