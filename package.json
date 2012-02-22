@@ -1,15 +1,15 @@
 {
     "author"        :   "Dan Harabagiu <harabagiu.dan@gmail.com> (http://dan.harabagiu.net/)",
-    "name"          :   "CloudJS",
+    "name"          :   "cloudjs",
     "description"   :   "Making from nodeJS a cloud distributed event system",
     "version"       :   "0.0.1",
     "repository"    :   {
             "type"      :   "git",
-            "url"       :   "git://github.com/digitalwm/cloudjs.git"
+            "url"       :   "git@github.com:digitalwm/cloudjs.git"
     },
     "main"          :   "cloudjs.js",
     "engines"       :   {
-            "node"      :   "0.6.*"
+            "node"      :   "0.6*"
     },
     "dependencies"  :   {
         "JASON"         :   "0.1.2"
