@@ -6,11 +6,18 @@
 
 var cloud,
     numberOfObjects = 3,
-    addEveryXSeconds = 2;
+    i,
+    cloudConfig;
 
 cloud = require("./cloudjs.js");
 
-var myObject = new cloud.Clouder(11211, "255.255.255.255", true);
+cloudConfig = {
+    hasPool : true,
+    timeout : 3000,
+    balance : 20000
+};
+
+var myObject = new cloud.Clouder(11211, "255.255.255.255", cloudConfig);
 myObject.connect();
 
 function guidGenerator() {
@@ -30,13 +37,6 @@ function Ob1(id) {
     };
 }
 
-var now = new Date().getTime();
-
-function addObjects() {
-    var localNow = new Date().getTime();
-    if(localNow - now < numberOfObjects * 1000) {
-        myObject.addElementToPool(new Ob1(guidGenerator()), 5000);
-    }
+for(i = 0 ; i < numberOfObjects ; i++) {
+    myObject.addElementToPool(new Ob1(guidGenerator()), 5000);
 }
-
-setInterval(addObjects, addEveryXSeconds * 1000);

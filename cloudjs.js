@@ -11,6 +11,15 @@
     - "userEvent" -> array(msg, id)
 */
 
+/*
+    config = {
+        hasPool     :   bool,
+        timeout     :   int,
+        balance     :   int,
+        heartbeat   :   int
+    }
+ */
+
 var util = require('util'),
     events = require('events').EventEmitter,
     dgram = require('dgram'),
@@ -245,23 +254,44 @@ function obidGenerator() {
     return now + "-" + S4();
 }
 
-function Clouder(port, group, hasPools) {
-    //By default is not activated
-    if(typeof(hasPools) === 'undefined') {
-        hasPools = false;
+function Clouder(port, group, config) {
+    var hasPool = false,
+        timeout = 5000,
+        balance = 10000,
+        heartbeat = 2000;
+
+    if(typeof(config) !== "undefined") {
+        //set config values
+        if(typeof(config.hasPool) === 'boolean') {
+            hasPool = config.hasPool;
+        }
+        if(typeof(config.timeout) === 'number') {
+            timeout = config.timeout;
+        }
+        if(typeof(config.balance) === 'number') {
+            balance = config.balance;
+        }
+        if(typeof(config.heartbeat) === 'number') {
+            heartbeat = config.heartbeat;
+        }
     }
+
+    this._hasPool = hasPool;
+    this._timeout = timeout;
+    this._balance = balance;
+    this._heartbeat = heartbeat;
     this.id = guidGenerator();
     this.port = port;
     this.group = group;
     this.score = 0;
     this.socket = dgram.createSocket("udp4");
     this.peers = [];
-    if(hasPools === true) {
+    if(this._hasPool === true) {
         this.pool = [];
         this.timers = [];
         this.removeTimers = [];
-        setInterval(clearTimers, 5000, this);
-        setInterval(balanceSelf, 10000, this);
+        setInterval(clearTimers, this._timeout, this);
+        setInterval(balanceSelf, this._balance, this);
     }
     return this;
 }
@@ -278,7 +308,7 @@ Clouder.prototype.connect = function () {
         obj.sendOperational("heartbeat", obj.score);
     };
 
-    setInterval(this.sendHeartbeat, 2000, this);
+    setInterval(this.sendHeartbeat, this._heartbeat, this);
     //noinspection JSUnresolvedFunction
     this.on("heartbeat", function (data) {
         var sid, score;

@@ -2,7 +2,9 @@
     "author"        :   "Dan Harabagiu <harabagiu.dan@gmail.com> (http://dan.harabagiu.net/)",
     "name"          :   "cloudjs",
     "description"   :   "Making from nodeJS a cloud distributed event system",
-    "version"       :   "0.0.1",
+    "version"       :   "0.0.2",
+    "homepage"      :   "http://dan.harabagiu.net/cloudjs",
+    "keywords"      :   ["udp", "broadcast", "realtime", "cloud", "event"],
     "repository"    :   {
             "type"      :   "git",
             "url"       :   "git@github.com:digitalwm/cloudjs.git"
