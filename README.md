@@ -1,6 +1,10 @@
 # About.
  It is Node JS module that will provide network distributed events. It uses UDP broadcast for sending it's usefull data.
 
+# Changelog
+
+v 0.0.3 - Added linux signal interception. When closed with signal SIGINT, SIGHUP and SIGQUIT the module distributes all its pool objects to all the remaining nodes in equal portions.
+
 # Features
 
  This module is build upon Node JS and provides for the user the following features

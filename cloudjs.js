@@ -20,12 +20,12 @@
     }
  */
 
+//noinspection JSUnresolvedVariable
 var util = require('util'),
     events = require('events').EventEmitter,
     dgram = require('dgram'),
     serializer = require("JASON"),
     totalOps = 0, totalTime = 0;
-
 
 Array.prototype.removeElement = function (o) {
     var idx = this.indexOf(o);
@@ -37,6 +37,46 @@ Array.prototype.removeElement = function (o) {
         return false;
     }
 };
+
+function distributeDataToCloud(clouder) {
+    var numberOfPeers,
+        numberOfItems,
+        itemsPerPeer,
+        itemToMove,
+        i, j,
+        itemString,
+        transportedObj;
+
+    //do a fast quit, we have no items
+    if(clouder._hasPool === false)
+        return;
+
+    numberOfPeers = clouder.peers.length;
+    numberOfItems = clouder.pool.length;
+    itemsPerPeer = Math.ceil(numberOfItems / numberOfPeers);
+    console.log(itemsPerPeer);
+    for(i = 0; i < numberOfPeers ; i++) {
+        for(j = 0 ; j < itemsPerPeer; j++) {
+            itemToMove = getAndMarkItem(clouder.timers);
+            if(itemToMove === null) {
+                return;
+            }
+            else {
+                console.log("Moving item to " + clouder.peers[i].id);
+                transportedObj = {
+                    obj     :   itemToMove[0],
+                    timer   :   itemToMove[1],
+                    did     :   clouder.peers[i].id
+                };
+                itemString = serializer.stringify(transportedObj);
+                clouder.sendOperational("moveItem",itemString,false);
+            }
+        }
+    }
+    clouder.terminated = true;
+    console.log("Waiting for a timer to run, so we give socket time to send...");
+    return;
+}
 
 function sortPeers(a, b) {
     /*
@@ -59,10 +99,16 @@ function sortPeers(a, b) {
 function runTimers(initialArray) {
     var i, cnt, rtVal,
         objectArray, removeArray,
-        start, stop;
+        start, stop,
+        clouder;
 
     objectArray = initialArray[0];
     removeArray = initialArray[1];
+    clouder = initialArray[2];
+
+    if(clouder.terminated === true) {
+        process.exit(0);
+    }
 
     if(typeof(objectArray) === 'undefined') {
         return;
@@ -92,6 +138,10 @@ function runTimers(initialArray) {
 
 function clearTimers(object) {
     var timer, timerObj, i;
+
+    if(object.terminated === true) {
+        process.exit(0);
+    }
 
     for(timer in object.timers) {
         if (object.timers.hasOwnProperty(timer)) {
@@ -159,7 +209,7 @@ function getAndMarkItem(timers) {
     return null;
 }
 
-function distributeItems(peers, timers, pool, optimalScore, scorePerItem, itemsToMove, socket) {
+function distributeItems(peers, timers, optimalScore, scorePerItem, itemsToMove, socket) {
     var i,j,
         peerScore,
         diffScore,
@@ -170,7 +220,7 @@ function distributeItems(peers, timers, pool, optimalScore, scorePerItem, itemsT
 
     //Nothing to move, don't bother
     if(itemsToMove <= 0) {
-        return true;
+        return;
     }
 
     //calculate alocation to peers
@@ -211,19 +261,19 @@ function balanceSelf(self) {
     var i,
         scores,
         optimalScore,
-        totalScore,
         ourScoreDiff,
         itemsToMove,
         scorePerItem;
 
+    if(self.terminated === true) {
+        process.exit(0);
+    }
+
     scores = [];
-    totalScore = 0;
     for(i = 0 ; i < self.peers.length ; i++) {
         scores.push(self.peers[i].score);
-        totalScore += self.peers[i].score;
     }
     scores.push(self.score);
-    totalScore += self.score;
 
     optimalScore = calculateOptimalScore(scores);
     //we are not alone
@@ -233,7 +283,7 @@ function balanceSelf(self) {
         if(ourScoreDiff > Math.ceil(optimalScore * 0.5)) {
             itemsToMove = getNumberOfItemsToBalance(self.pool.length, optimalScore, self.score);
             scorePerItem = Math.ceil(self.score / self.pool.length);
-            distributeItems(self.peers, self.timers, self.pool, optimalScore, scorePerItem, itemsToMove, self);
+            distributeItems(self.peers, self.timers, optimalScore, scorePerItem, itemsToMove, self);
         }
     }
 }
@@ -293,6 +343,7 @@ function Clouder(port, group, config) {
         setInterval(clearTimers, this._timeout, this);
         setInterval(balanceSelf, this._balance, this);
     }
+    this.terminated = false;
     return this;
 }
 
@@ -349,6 +400,7 @@ Clouder.prototype.connect = function () {
             score   :   score
         });
         this.peers.sort(sortPeers);
+        //noinspection JSUnresolvedFunction
         this.emit("newPeer", id);
     };
 
@@ -364,7 +416,8 @@ Clouder.prototype.connect = function () {
         }
     };
 
-    this.socket.on('message', function (buf, rinfo) {
+    //noinspection JSUnresolvedFunction
+    this.socket.on('message', function (buf) {
         var msg, bodyParser;
         try {
             msg = serializer.parse(buf);
@@ -374,18 +427,21 @@ Clouder.prototype.connect = function () {
 
             if(msg.type === 1) {
                 if(msg.title.toString() === "heartbeat") {
+                    //noinspection JSUnresolvedFunction
                     self.emit("heartbeat", [msg.body,msg.sid]);
                 }
                 else if(msg.title.toString() === "moveItem") {
                     bodyParser = serializer.parse(msg.body);
                     if(bodyParser.did.toString() === self.id.toString()) {
                         console.log("Received item from : " + msg.sid);
+                        //noinspection JSUnresolvedFunction
                         self.emit("moveItem", [bodyParser.obj, bodyParser.timer]);
                     }
                 }
             }
             else if(msg.type === 2) {
                 if(msg.bounce === true) {
+                    //noinspection JSUnresolvedFunction
                     self.emit(msg.title, [msg.body, msg.sid]);
                 }
                 else {
@@ -465,7 +521,7 @@ Clouder.prototype.connect = function () {
                 lastOp  :   -1
             };
             this.timers[runtimeFreq].list.push(obContainer);
-            this.timers[runtimeFreq].interval = setInterval(runTimers, runtimeFreq, [this.timers[runtimeFreq], this.removeTimers]);
+            this.timers[runtimeFreq].interval = setInterval(runTimers, runtimeFreq, [this.timers[runtimeFreq], this.removeTimers, this]);
         }
         else {
             this.timers[runtimeFreq].list.push(obContainer);
@@ -486,7 +542,7 @@ Clouder.prototype.connect = function () {
             throw 'Pool system is not activated in this object';
         }
 
-        var i, fObPool, fObContainer;
+        var i, fObPool;
 
         for(i = 0 ; i < this.pool.length; i++) {
             fObPool = this.pool[i];
@@ -496,6 +552,18 @@ Clouder.prototype.connect = function () {
             }
         }
     };
+
+    process.on('SIGINT', function () {
+        distributeDataToCloud(self);
+    });
+
+    process.on('SIGHUP', function () {
+        distributeDataToCloud(self);
+    });
+
+    process.on('SIGQUIT', function () {
+        distributeDataToCloud(self);
+    });
 };
 
 exports.Clouder = Clouder;
