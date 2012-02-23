@@ -48,13 +48,18 @@ function distributeDataToCloud(clouder) {
         transportedObj;
 
     //do a fast quit, we have no items
-    if(clouder._hasPool === false)
-        return;
+    if(clouder._hasPool === false) {
+        process.exit(0);
+    }
 
     numberOfPeers = clouder.peers.length;
     numberOfItems = clouder.pool.length;
+
+    if(numberOfPeers <= 0) {
+        process.exit(0);
+    }
+
     itemsPerPeer = Math.ceil(numberOfItems / numberOfPeers);
-    console.log(itemsPerPeer);
     for(i = 0; i < numberOfPeers ; i++) {
         for(j = 0 ; j < itemsPerPeer; j++) {
             itemToMove = getAndMarkItem(clouder.timers);
