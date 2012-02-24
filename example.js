@@ -42,3 +42,15 @@ function Ob1(id) {
 for(i = 0 ; i < numberOfObjects ; i++) {
     myObject.addElementToPool(new Ob1(guidGenerator()), 5000);
 }
+
+function mesgCallback1(data, sid) {
+    console.log("Received callback from " + sid + ", time to return data");
+    return "test" + sid;
+}
+
+function mesgCallback2(data, sid) {
+    console.log("Received reply on event : " + data + " from "  + sid);
+}
+
+myObject.onWithReply("sendReply", mesgCallback1);
+myObject.sendWithCallback("sendReply", "blah", mesgCallback2, 3000);

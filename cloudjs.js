@@ -28,6 +28,7 @@ var util = require('util'),
     crypto = require('cryptojs').Crypto,
     dgram = require('dgram'),
     serializer = require("JASON"),
+    callbacks = require("./modules/callbacks.js"),
     totalOps = 0, totalTime = 0;
 
 Array.prototype.removeElement = function (o) {
@@ -302,6 +303,15 @@ function guidGenerator() {
     return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
 }
 
+function midGenerator() {
+    var S4, now;
+    S4 = function() {
+        return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+    };
+    now = new Date().getTime();
+    return now + "-" + S4();
+}
+
 function obidGenerator() {
     var S4, now;
     S4 = function() {
@@ -436,7 +446,8 @@ Clouder.prototype.connect = function () {
     //noinspection JSUnresolvedFunction
     this.socket.on('message', function (buf) {
         var msg, bodyParser,
-            mode, dataBytes, dataDecripted;
+            mode, dataBytes, dataDecripted,
+            cbList, i, reply;
         try {
             if(self._hasEncription === true) {
                 mode = new crypto.mode.ECB(crypto.pad.pkcs7);
@@ -471,6 +482,37 @@ Clouder.prototype.connect = function () {
                 else {
                     if(msg.sid.toString() !== self.id.toString()) {
                         self.emit(msg.title, [msg.body, msg.sid]);
+                    }
+                }
+            }
+            else if(msg.type === 3) {
+                if(msg.sid.toString() !== self.id.toString() && (typeof(msg.needReply) !== 'undefined' || typeof(msg.hasReply) !== 'undefined')) {
+                    //we have a start event with need for reply
+                    if(typeof(msg.needReply) !== 'undefined') {
+                        //this should not happen, BUT if it is we have a solution
+                        if(msg.needReply === false) {
+                            if(msg.bounce === true) {
+                                //noinspection JSUnresolvedFunction
+                                self.emit(msg.title, [msg.body, msg.sid]);
+                            }
+                            else {
+                                if(msg.sid.toString() !== self.id.toString()) {
+                                    self.emit(msg.title, [msg.body, msg.sid]);
+                                }
+                            }
+                        }
+                        else {
+                            cbList = callbacks.getOnCallbacks(msg.title);
+                            for(i = 0 ; i < cbList.length ; i++) {
+                                reply = cbList[i](msg.body, msg.sid);
+                                self.sendReply(msg, reply);
+                            }
+                        }
+                    }
+
+                    //we have a reply
+                    if(typeof(msg.hasReply) !== 'undefined' && typeof(msg.mid) !== 'undefined') {
+                        callbacks.parse(msg.mid, msg.body, msg.sid);
                     }
                 }
             }
@@ -537,6 +579,64 @@ Clouder.prototype.connect = function () {
             throw "Message to complex to be sent";
         }
         this.socket.send(messageBuffer, 0, messageBuffer.length, this.port, this.group);
+    };
+
+    this.sendWithCallback = function(title, message, callback, timeout) {
+        var mode, dataBytes, dataEncripted;
+
+        var messageBuffer, msg = {
+            mid     :   midGenerator(),
+            sid     :   this.id,
+            bounce  :   false,
+            type    :   3,
+            title   :   title,
+            body    :   message,
+            needReply   :   true
+        };
+        try {
+            if(this._hasEncription === true) {
+                mode = new crypto.mode.ECB(crypto.pad.pkcs7);
+                dataBytes = crypto.charenc.UTF8.stringToBytes(serializer.stringify(msg));
+                dataEncripted = crypto.DES.encrypt(dataBytes, this._encryptionKey, {asBytes: true, mode: mode});
+                messageBuffer = new Buffer(crypto.util.bytesToHex(dataEncripted));
+            }
+            else {
+                messageBuffer = new Buffer(serializer.stringify(msg));
+            }
+        }
+        catch(Exception) {
+            throw "Message to complex to be sent";
+        }
+        this.socket.send(messageBuffer, 0, messageBuffer.length, this.port, this.group);
+        callbacks.add(msg.mid, callback, timeout);
+    };
+
+    this.sendReply = function(msg, reply) {
+        var mode, dataBytes, dataEncripted, messageBuffer;
+
+        delete msg.needReply;
+        msg.hasReply = true;
+        msg.body = reply;
+        msg.sid = self.id;
+        try {
+            if(this._hasEncription === true) {
+                mode = new crypto.mode.ECB(crypto.pad.pkcs7);
+                dataBytes = crypto.charenc.UTF8.stringToBytes(serializer.stringify(msg));
+                dataEncripted = crypto.DES.encrypt(dataBytes, this._encryptionKey, {asBytes: true, mode: mode});
+                messageBuffer = new Buffer(crypto.util.bytesToHex(dataEncripted));
+            }
+            else {
+                messageBuffer = new Buffer(serializer.stringify(msg));
+            }
+        }
+        catch(Exception) {
+            throw "Message to complex to be sent";
+        }
+        this.socket.send(messageBuffer, 0, messageBuffer.length, this.port, this.group);
+    };
+
+    this.onWithReply = function (title, callback) {
+        callbacks.on(title, callback);
     };
 
     /**
