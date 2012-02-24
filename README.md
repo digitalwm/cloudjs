@@ -4,6 +4,7 @@
 # Changelog
 
 v 0.0.3 - Added linux signal interception. When closed with signal SIGINT, SIGHUP and SIGQUIT the module distributes all its pool objects to all the remaining nodes in equal portions.
+v 0.0.4 - Added encryption to events sent on the network. This can be switched on and off. Uses DES encryption method.
 
 # Features
 
