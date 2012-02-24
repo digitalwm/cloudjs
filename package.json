@@ -1,18 +1,23 @@
 {
     "author"        :   "Dan Harabagiu <harabagiu.dan@gmail.com> (http://dan.harabagiu.net/)",
     "name"          :   "cloudjs",
-    "description"   :   "Making from nodeJS a cloud distributed event system",
-    "version"       :   "0.0.4",
+    "description"   :   "A network distributed event system. Similar to node JS standard event system. A process pool, where objects can be added and ran at a periodic interval a predefined functions. An auto-balancing system, that migrate objects in the process pool, from one running instance to another, based on the load of each instance.",
+    "version"       :   "0.0.7",
     "homepage"      :   "http://dan.harabagiu.net/cloudjs",
     "keywords"      :   ["udp", "broadcast", "realtime", "cloud", "event"],
     "repository"    :   {
         "type"      :   "git",
         "url"       :   "git@github.com:digitalwm/cloudjs.git"
     },
+    "bugs"          :   {
+        "url"       :   "https://github.com/digitalwm/cloudjs/issues",
+        "email"     :   "harabagiu.dan@gmail.com"
+    },
     "main"          :   "cloudjs.js",
     "engines"       :   {
-        "node"      :   "0.6*"
+        "node"      :   ">0.4.0"
     },
+    "files"         :   ["cloudjs.js"],
     "dependencies"  :   {
         "JASON"         :   "0.1.2",
         "cryptojs"      :   "2.5.3"

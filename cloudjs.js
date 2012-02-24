@@ -83,7 +83,6 @@ function distributeDataToCloud(clouder) {
     }
     clouder.terminated = true;
     console.log("Waiting for a timer to run, so we give socket time to send...");
-    return;
 }
 
 function sortPeers(a, b) {
