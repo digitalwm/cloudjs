@@ -17,12 +17,15 @@
         timeout     :   int,
         balance     :   int,
         heartbeat   :   int
+        hasEncryption : bool,
+        encryptionKey : string
     }
  */
 
 //noinspection JSUnresolvedVariable
 var util = require('util'),
     events = require('events').EventEmitter,
+    crypto = require('cryptojs').Crypto,
     dgram = require('dgram'),
     serializer = require("JASON"),
     totalOps = 0, totalTime = 0;
@@ -313,7 +316,9 @@ function Clouder(port, group, config) {
     var hasPool = false,
         timeout = 5000,
         balance = 10000,
-        heartbeat = 2000;
+        heartbeat = 2000,
+        hasEncryption = false,
+        encryptionKey = '12345';
 
     if(typeof(config) !== "undefined") {
         //set config values
@@ -329,12 +334,20 @@ function Clouder(port, group, config) {
         if(typeof(config.heartbeat) === 'number') {
             heartbeat = config.heartbeat;
         }
+        if(typeof(config.hasEncryption) === 'boolean') {
+            hasEncryption = config.hasEncryption;
+        }
+        if(typeof(config.encryptionKey) === 'string') {
+            encryptionKey = config.encryptionKey;
+        }
     }
 
     this._hasPool = hasPool;
     this._timeout = timeout;
     this._balance = balance;
     this._heartbeat = heartbeat;
+    this._hasEncription = hasEncryption;
+    this._encryptionKey = encryptionKey;
     this.id = guidGenerator();
     this.port = port;
     this.group = group;
@@ -423,8 +436,15 @@ Clouder.prototype.connect = function () {
 
     //noinspection JSUnresolvedFunction
     this.socket.on('message', function (buf) {
-        var msg, bodyParser;
+        var msg, bodyParser,
+            mode, dataBytes, dataDecripted;
         try {
+            if(self._hasEncription === true) {
+                mode = new crypto.mode.ECB(crypto.pad.pkcs7);
+                dataBytes = crypto.util.hexToBytes(buf.toString());
+                dataDecripted = crypto.DES.decrypt(dataBytes, self._encryptionKey, {asBytes: true, mode: mode});
+                buf = crypto.charenc.UTF8.bytesToString(dataDecripted);
+            }
             msg = serializer.parse(buf);
             if(typeof(msg.type) === 'undefined' || typeof(msg.title) === 'undefined' || typeof(msg.body) === 'undefined') {
                 return;
@@ -462,6 +482,7 @@ Clouder.prototype.connect = function () {
     });
 
     this.sendOperational = function (title, message, bounce) {
+        var mode, dataBytes, dataEncripted;
         if(typeof(bounce) === 'undefined') {
             bounce = true;
         }
@@ -473,7 +494,15 @@ Clouder.prototype.connect = function () {
             body    :   message
         };
         try {
-            messageBuffer = new Buffer(serializer.stringify(msg));
+            if(this._hasEncription === true) {
+                mode = new crypto.mode.ECB(crypto.pad.pkcs7);
+                dataBytes = crypto.charenc.UTF8.stringToBytes(serializer.stringify(msg));
+                dataEncripted = crypto.DES.encrypt(dataBytes, this._encryptionKey, {asBytes: true, mode: mode});
+                messageBuffer = new Buffer(crypto.util.bytesToHex(dataEncripted).toString());
+            }
+            else {
+                messageBuffer = new Buffer(serializer.stringify(msg));
+            }
         }
         catch(Exception) {
             throw "Message to complex to be sent";
@@ -482,6 +511,7 @@ Clouder.prototype.connect = function () {
     };
 
     this.send = function (title, message, self) {
+        var mode, dataBytes, dataEncripted;
         if(typeof(self) === 'undefined') {
             self = false;
         }
@@ -494,7 +524,15 @@ Clouder.prototype.connect = function () {
             body    :   message
         };
         try {
-            messageBuffer = new Buffer(serializer.stringify(msg));
+            if(this._hasEncription === true) {
+                mode = new crypto.mode.ECB(crypto.pad.pkcs7);
+                dataBytes = crypto.charenc.UTF8.stringToBytes(serializer.stringify(msg));
+                dataEncripted = crypto.DES.encrypt(dataBytes, this._encryptionKey, {asBytes: true, mode: mode});
+                messageBuffer = new Buffer(crypto.util.bytesToHex(dataEncripted));
+            }
+            else {
+                messageBuffer = new Buffer(serializer.stringify(msg));
+            }
         }
         catch(Exception) {
             throw "Message to complex to be sent";

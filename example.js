@@ -12,9 +12,11 @@ var cloud,
 cloud = require("./cloudjs.js");
 
 cloudConfig = {
-    hasPool : true,
-    timeout : 3000,
-    balance : 20000
+    hasPool         :   true,
+    timeout         :   3000,
+    balance         :   20000,
+    hasEncryption   :   true,
+    encryptionKey   :   '12345'
 };
 
 var myObject = new cloud.Clouder(11211, "255.255.255.255", cloudConfig);
