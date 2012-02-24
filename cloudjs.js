@@ -388,12 +388,7 @@ Clouder.prototype.connect = function () {
 
     setInterval(this.sendHeartbeat, this._heartbeat, this);
     //noinspection JSUnresolvedFunction
-    this.on("heartbeat", function (data) {
-        var sid, score;
-
-        sid = data[1];
-        score = data[0];
-
+    this.on("heartbeat", function (score, sid) {
         if(sid === self.id) {
             self.cleanPeer();
         }
@@ -402,12 +397,7 @@ Clouder.prototype.connect = function () {
         }
     });
 
-    this.on("moveItem", function (data) {
-        var obj, timer;
-
-        obj = data[0];
-        timer = data[1];
-
+    this.on("moveItem", function (obj, timer) {
         self.addElementToPool(obj, timer);
     });
 
@@ -463,25 +453,26 @@ Clouder.prototype.connect = function () {
             if(msg.type === 1) {
                 if(msg.title.toString() === "heartbeat") {
                     //noinspection JSUnresolvedFunction
-                    self.emit("heartbeat", [msg.body,msg.sid]);
+                    self.emit("heartbeat", msg.body,msg.sid);
                 }
                 else if(msg.title.toString() === "moveItem") {
                     bodyParser = serializer.parse(msg.body);
                     if(bodyParser.did.toString() === self.id.toString()) {
                         console.log("Received item from : " + msg.sid);
                         //noinspection JSUnresolvedFunction
-                        self.emit("moveItem", [bodyParser.obj, bodyParser.timer]);
+                        self.emit("moveItem", bodyParser.obj, bodyParser.timer);
                     }
                 }
             }
             else if(msg.type === 2) {
                 if(msg.bounce === true) {
                     //noinspection JSUnresolvedFunction
-                    self.emit(msg.title, [msg.body, msg.sid]);
+                    self.emit(msg.title, msg.body, msg.sid);
                 }
                 else {
                     if(msg.sid.toString() !== self.id.toString()) {
-                        self.emit(msg.title, [msg.body, msg.sid]);
+                        //noinspection JSUnresolvedFunction
+                        self.emit(msg.title, msg.body, msg.sid);
                     }
                 }
             }

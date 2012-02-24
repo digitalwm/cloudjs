@@ -22,6 +22,10 @@ cloudConfig = {
 var myObject = new cloud.Clouder(11211, "255.255.255.255", cloudConfig);
 myObject.connect();
 
+/*
+    Object pool
+ */
+
 function guidGenerator() {
     var S4 = function() {
         return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
@@ -42,6 +46,20 @@ function Ob1(id) {
 for(i = 0 ; i < numberOfObjects ; i++) {
     myObject.addElementToPool(new Ob1(guidGenerator()), 5000);
 }
+
+/*
+    Event fire and forget
+ */
+
+myObject.on("test", function(data, sid) {
+    console.log("received " + data + " from " + sid);
+});
+
+myObject.send("test","test2");
+
+/*
+    Event with callbacks
+ */
 
 function mesgCallback1(data, sid) {
     console.log("Received callback from " + sid + ", time to return data");
