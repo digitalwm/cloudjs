@@ -1,5 +1,5 @@
 # About.
- It is Node JS module that will provide network distributed events. It uses UDP broadcast for sending it's usefull data.
+ It is Node JS module that will provide network distributed events. It uses UDP broadcast for sending it's useful data.
 
 # Changelog
 <br/>
