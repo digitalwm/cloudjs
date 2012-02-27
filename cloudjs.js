@@ -445,12 +445,11 @@ Clouder.prototype.connect = function () {
                 dataDecripted = crypto.DES.decrypt(dataBytes, self._encryptionKey, {asBytes: true, mode: mode});
                 buf = crypto.charenc.UTF8.bytesToString(dataDecripted);
             }
+            self.emit("rawdata", msg);
             msg = serializer.parse(buf);
             if(typeof(msg.type) === 'undefined' || typeof(msg.title) === 'undefined' || typeof(msg.body) === 'undefined') {
                 return;
             }
-
-            self.emit("rawdata", msg);
 
             if(msg.type === 1) {
                 if(msg.title.toString() === "heartbeat") {
@@ -573,6 +572,25 @@ Clouder.prototype.connect = function () {
         }
         this.socket.send(messageBuffer, 0, messageBuffer.length, this.port, this.group);
     };
+
+    this.inject = function(data) {
+        var mode, dataBytes, dataEncripted, messageBuffer;
+        try {
+            if(this._hasEncription === true) {
+                mode = new crypto.mode.ECB(crypto.pad.pkcs7);
+                dataBytes = crypto.charenc.UTF8.stringToBytes(data);
+                dataEncripted = crypto.DES.encrypt(dataBytes, this._encryptionKey, {asBytes: true, mode: mode});
+                messageBuffer = new Buffer(crypto.util.bytesToHex(dataEncripted));
+            }
+            else {
+                messageBuffer = new Buffer(data);
+            }
+        }
+        catch(Exception) {
+            throw "Message to complex to be sent";
+        }
+        this.socket.send(messageBuffer, 0, messageBuffer.length, this.port, this.group);
+    }
 
     this.sendWithCallback = function(title, message, callback, timeout) {
         var mode, dataBytes, dataEncripted;
