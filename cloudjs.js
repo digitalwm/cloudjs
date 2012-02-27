@@ -450,6 +450,8 @@ Clouder.prototype.connect = function () {
                 return;
             }
 
+            self.emit("rawdata", msg);
+
             if(msg.type === 1) {
                 if(msg.title.toString() === "heartbeat") {
                     //noinspection JSUnresolvedFunction

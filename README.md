@@ -7,6 +7,7 @@ v 0.0.3 - Added linux signal interception. When closed with signal SIGINT, SIGHU
 v 0.0.4 - Added encryption to events sent on the network. This can be switched on and off. Uses DES encryption method.<br/>
 v 0.0.8 - Manage to fix the package.json with a proper forma. Added also special events that once emited they wait for a reply by providing a callback and a timeout. When the timeout is reached the callback is removed from the watch list. This events are non-blocking.<br/>
 v 0.0.9 - All user generated events, are calling the assigned call back with two parameters (data and the ID of the event emiter instance)
+v 0.0.10 - Emiting a new event "rawdata", which is emited every time a event message is received. It contains the whole message object. NOTE: take care on how are you using this
 <br/>
 # Features
 
