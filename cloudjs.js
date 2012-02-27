@@ -18,7 +18,8 @@
         balance     :   int,
         heartbeat   :   int
         hasEncryption : bool,
-        encryptionKey : string
+        encryptionKey : string,
+        invisible   :   bool
     }
  */
 
@@ -41,6 +42,17 @@ Array.prototype.removeElement = function (o) {
         return false;
     }
 };
+
+String.prototype.hashCode = function(){
+    var hash = 0;
+    if (this.length == 0) return hash;
+    for (i = 0; i < this.length; i++) {
+        char = this.charCodeAt(i);
+        hash = ((hash<<5)-hash)+char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash;
+}
 
 function distributeDataToCloud(clouder) {
     var numberOfPeers,
@@ -327,7 +339,8 @@ function Clouder(port, group, config) {
         balance = 10000,
         heartbeat = 2000,
         hasEncryption = false,
-        encryptionKey = '12345';
+        encryptionKey = '12345',
+        invisible = false;
 
     if(typeof(config) !== "undefined") {
         //set config values
@@ -349,8 +362,12 @@ function Clouder(port, group, config) {
         if(typeof(config.encryptionKey) === 'string') {
             encryptionKey = config.encryptionKey;
         }
+        if(typeof(config.invisible) === 'boolean') {
+            invisible = config.invisible;
+        }
     }
 
+    this._invisible = invisible;
     this._hasPool = hasPool;
     this._timeout = timeout;
     this._balance = balance;
@@ -363,6 +380,7 @@ function Clouder(port, group, config) {
     this.score = 0;
     this.socket = dgram.createSocket("udp4");
     this.peers = [];
+    this.messagesInjected = [];
     if(this._hasPool === true) {
         this.pool = [];
         this.timers = [];
@@ -386,7 +404,10 @@ Clouder.prototype.connect = function () {
         obj.sendOperational("heartbeat", obj.score);
     };
 
-    setInterval(this.sendHeartbeat, this._heartbeat, this);
+    if(self._invisible === false) {
+        setInterval(this.sendHeartbeat, this._heartbeat, this);
+    }
+
     //noinspection JSUnresolvedFunction
     this.on("heartbeat", function (score, sid) {
         if(sid === self.id) {
@@ -439,13 +460,18 @@ Clouder.prototype.connect = function () {
             mode, dataBytes, dataDecripted,
             cbList, i, reply;
         try {
+            //we dont loop our own sent message
+            if(self.messagesInjected.removeElement(buf.toString().hashCode()) === true) {
+                return;
+            }
+
             if(self._hasEncription === true) {
                 mode = new crypto.mode.ECB(crypto.pad.pkcs7);
                 dataBytes = crypto.util.hexToBytes(buf.toString());
                 dataDecripted = crypto.DES.decrypt(dataBytes, self._encryptionKey, {asBytes: true, mode: mode});
                 buf = crypto.charenc.UTF8.bytesToString(dataDecripted);
             }
-            self.emit("rawdata", msg);
+            self.emit("rawdata", buf.toString());
             msg = serializer.parse(buf);
             if(typeof(msg.type) === 'undefined' || typeof(msg.title) === 'undefined' || typeof(msg.body) === 'undefined') {
                 return;
@@ -574,23 +600,11 @@ Clouder.prototype.connect = function () {
     };
 
     this.inject = function(data) {
-        var mode, dataBytes, dataEncripted, messageBuffer;
-        try {
-            if(this._hasEncription === true) {
-                mode = new crypto.mode.ECB(crypto.pad.pkcs7);
-                dataBytes = crypto.charenc.UTF8.stringToBytes(data);
-                dataEncripted = crypto.DES.encrypt(dataBytes, this._encryptionKey, {asBytes: true, mode: mode});
-                messageBuffer = new Buffer(crypto.util.bytesToHex(dataEncripted));
-            }
-            else {
-                messageBuffer = new Buffer(data);
-            }
-        }
-        catch(Exception) {
-            throw "Message to complex to be sent";
-        }
+        var messageBuffer;
+        messageBuffer = new Buffer(data);
+        this.messagesInjected.push(messageBuffer.toString().hashCode());
         this.socket.send(messageBuffer, 0, messageBuffer.length, this.port, this.group);
-    }
+    };
 
     this.sendWithCallback = function(title, message, callback, timeout) {
         var mode, dataBytes, dataEncripted;

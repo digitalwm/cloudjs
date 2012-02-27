@@ -2,7 +2,7 @@
     "author"        :   "Dan Harabagiu <harabagiu.dan@gmail.com> (http://dan.harabagiu.net/)",
     "name"          :   "cloudjs",
     "description"   :   "A network distributed event system. Similar to node JS standard event system. A process pool, where objects can be added and ran at a periodic interval a predefined functions. An auto-balancing system, that migrate objects in the process pool, from one running instance to another, based on the load of each instance.",
-    "version"       :   "0.0.11",
+    "version"       :   "0.0.13",
     "homepage"      :   "http://dan.harabagiu.net/cloudjs",
     "keywords"      :   ["udp", "broadcast", "realtime", "cloud", "event"],
     "repository"    :   {
@@ -17,7 +17,7 @@
     "engines"       :   {
         "node"      :   ">0.4.0"
     },
-    "files"         :   ["cloudjs.js", "./modules/callbacks.js"],
+    "files"         :   ["cloudjs.js", "modules/callbacks.js", "package.json", "LICENSE", "README.md"],
     "dependencies"  :   {
         "JASON"         :   "0.1.2",
         "cryptojs"      :   "2.5.3"
