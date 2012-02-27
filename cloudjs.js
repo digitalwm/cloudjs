@@ -464,6 +464,7 @@ Clouder.prototype.connect = function () {
             if(self.messagesInjected.removeElement(buf.toString().hashCode()) === true) {
                 return;
             }
+            self.emit("rawdata", buf);
 
             if(self._hasEncription === true) {
                 mode = new crypto.mode.ECB(crypto.pad.pkcs7);
@@ -471,7 +472,6 @@ Clouder.prototype.connect = function () {
                 dataDecripted = crypto.DES.decrypt(dataBytes, self._encryptionKey, {asBytes: true, mode: mode});
                 buf = crypto.charenc.UTF8.bytesToString(dataDecripted);
             }
-            self.emit("rawdata", buf.toString());
             msg = serializer.parse(buf);
             if(typeof(msg.type) === 'undefined' || typeof(msg.title) === 'undefined' || typeof(msg.body) === 'undefined') {
                 return;
@@ -600,10 +600,8 @@ Clouder.prototype.connect = function () {
     };
 
     this.inject = function(data) {
-        var messageBuffer;
-        messageBuffer = new Buffer(data);
-        this.messagesInjected.push(messageBuffer.toString().hashCode());
-        this.socket.send(messageBuffer, 0, messageBuffer.length, this.port, this.group);
+        this.messagesInjected.push(data.toString().hashCode());
+        this.socket.send(data, 0, data.length, this.port, this.group);
     };
 
     this.sendWithCallback = function(title, message, callback, timeout) {
