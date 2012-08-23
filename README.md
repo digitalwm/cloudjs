@@ -1,3 +1,4 @@
+[![build status](https://secure.travis-ci.org/digitalwm/cloudjs.png)](http://travis-ci.org/digitalwm/cloudjs)
 # About.
  It is Node JS module that will provide network distributed events. It uses UDP broadcast for sending it's useful data.
 
